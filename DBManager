@@ -1,0 +1,86 @@
+/**
+ * 使用 dbcp 数据库连接池配置获取数据库连接
+ * @author Zhangxu
+ * @time 2015-1-14
+ *
+ */
+public class DBManager {
+	private static final Logger log = Logger.getLogger(DBManager.class);
+	private static final String configFileName = "ConfigZ.properties";
+	private static DataSource dataSource;
+	/**
+	 * 静态块加载配置文件进行连接池配置
+	 */
+	static {
+		log.info("DBManager 开始执行静态块加载配置文件获取数据库连接对象");
+		Properties dbProperties = new Properties();
+		try {
+			dbProperties.load(DBManager.class.getClassLoader().getResourceAsStream(configFileName));
+			dataSource = BasicDataSourceFactory.createDataSource(dbProperties);
+			Connection conn = getConnection() ;
+			DatabaseMetaData mdm = conn.getMetaData();
+			log.info("Connected to " + mdm.getDatabaseProductName() + "  " + mdm.getDatabaseProductVersion() );
+			if(null != conn){
+				conn.close();
+			}
+		} catch (Exception e) {
+			log.error("初始化连接池失败 ： " + e);
+		}
+		log.info("DBManager 加载数据库连接对象配置参数 执行结束");
+	}
+	/**
+	 * 私有构造器防止外部new数据库对象
+	 */
+	private DBManager(){
+		
+	}
+	
+	/**
+	 * 获取连接
+	 * @return Connection  连接对象
+	 */
+	public static final Connection getConnection(){
+		log.info("DBManager - getConnection has executed.");
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+		} catch (SQLException e) {
+			log.error("获取数据库连接失败：" + e);
+		}
+		return conn;
+	}
+	
+	/**
+	 * 关闭数据库
+	 * @param conn 数据库连接对象
+	 * @param ps   执行对象
+	 * @param rs   结果集
+	 */
+	public static void close(Connection conn , PreparedStatement ps, ResultSet rs){
+		log.info("DBManager 关闭数据库 ： Connection :" + conn + "PreparedStatement : " + ps + " ResultSet :" + rs);
+		try {
+			if(null != conn && !conn.isClosed()){
+				conn.setAutoCommit(true);
+				conn.close();
+			}
+			if(null != ps && !ps.isClosed()){
+				ps.close();
+			}
+			if(null != rs && !rs.isClosed()){
+				rs.close();
+			}
+		} catch (SQLException e) {
+			log.error("关闭数据库连接失败：" + e);
+		}
+	}
+	
+	public static void main(String[] args) {
+		try {
+			Connection conn = DBManager.getConnection();
+			log.info("测试数据库对象：" + conn);
+			DBManager.close(conn,null,null);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+}
